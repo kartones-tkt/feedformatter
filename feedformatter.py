@@ -31,6 +31,8 @@ __author__ = "Luke Maurits, Michael Stella"
 __copyright__ = "Copyright 2008 Luke Maurits"
 
 from cStringIO import StringIO
+from datetime import datetime
+from time import time, strftime, strptime, localtime, mktime, struct_time, timezone
 
 # This "staircase" of import attempts is ugly.  If there's a nicer way to do
 # this, please let me know!
@@ -55,21 +57,21 @@ try:
 except ImportError:
     feedformatterCanPrettyPrint = False
 
-from time import time, strftime, strptime, localtime, mktime, struct_time, timezone
-import datetime
 
 # RSS 1.0 Functions ----------
 
 _rss1_channel_mappings = (
     (("title",), "title"),
     (("link", "url"), "link"),
-    (("description", "desc", "summary"), "description")
+    (("description", "desc", "summary"), "description"),
+    (("pubDate", "pubdate", "date", "published", "updated"), "dc:date", lambda(x): _format_datetime("rss1",x))
 )
 
 _rss1_item_mappings = (
     (("title",), "title"),
     (("link", "url"), "link"),
-    (("description", "desc", "summary"), "description")
+    (("description", "desc", "summary"), "description"),
+    (("pubDate", "pubdate", "date", "published", "updated"), "dc:date", lambda(x): _format_datetime("rss1",x))
 )
 
 # RSS 2.0 Functions ----------
@@ -146,7 +148,7 @@ def _convert_datetime(time):
     standard 9 part time tuple.
     """
 
-    if type(time) is datetime.datetime:
+    if type(time) is datetime:
         return time.timetuple()
     elif (type(time) is tuple and len(time) ==9) or type(time) is struct_time:
         # Already done!
@@ -183,7 +185,7 @@ def _format_datetime(feed_type, time):
     # Then, convert that to the appropriate string
     if feed_type is "rss2":
         return strftime("%a, %d %b %Y %H:%M:%S %Z", time)
-    elif feed_type is "atom":
+    elif feed_type in ("rss1", "atom"):
         return strftime("%Y-%m-%dT%H:%M:%S", time) + _get_tz_offset();
 
 def _atomise_id(tag):
@@ -392,7 +394,8 @@ class Feed:
             self.validate_rss1()
         RSS1root = ET.Element( 'rdf:RDF', 
             {"xmlns:rdf" : "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
-             "xmlns" : "http://purl.org/rss/1.0/"} )
+             "xmlns" : "http://purl.org/rss/1.0/",
+             "xmlns:dc" : "http://purl.org/dc/elements/1.1/" } )
         RSS1channel = ET.SubElement(RSS1root, 'channel',
             {"rdf:about" : self.feed["link"]})
         _add_subelems(RSS1channel, _rss1_channel_mappings, self.feed)
@@ -545,7 +548,7 @@ def main():
     item["title"] = "Test item"
     item["link"] = "http://www.python.org"
     item["description"] = "Python programming language"
-    item["guid"] = "1234567890"
+    item["date"] = localtime()
     feed.items.append(item)
     print("---- RSS 1.0 ----")
     print feed.format_rss1_string(pretty=True)
