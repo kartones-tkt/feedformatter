@@ -184,7 +184,9 @@ def _format_datetime(feed_type, time):
 
     # Then, convert that to the appropriate string
     if feed_type is "rss2":
-        return strftime("%a, %d %b %Y %H:%M:%S %Z", time)
+        # RSS 2.0 requires RFC 822 formatted date times.
+        # RFC 822 wants "GMT" instead of "UTC"
+        return strftime("%a, %d %b %Y %H:%M:%S %Z", time).replace("UTC", "GMT")
     elif feed_type in ("rss1", "atom"):
         return strftime("%Y-%m-%dT%H:%M:%S", time) + _get_tz_offset();
 
