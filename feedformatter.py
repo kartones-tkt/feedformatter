@@ -205,7 +205,10 @@ def _atomise_link(link, rel=None):
             link['rel'] = rel
         return link
     else:
-        return {'href' : link, 'type': 'text/html', 'rel': rel}
+        if rel:
+            return {'href' : link, 'type': 'text/html', 'rel': rel}
+        else:
+            return {'href' : link, 'type': 'text/html'}
 
 def _atomise_author(author):
 
@@ -547,7 +550,7 @@ def main():
     feed.feed["author"] = "Luke Maurits"
     feed.feed["description"] = "A simple test feed for the feedformatter project"
     item = {}
-    item["title"] = "Test item"
+    item["title"] = "Python"
     item["link"] = "http://www.python.org"
     item["description"] = "Python programming language"
     item["date"] = localtime()
