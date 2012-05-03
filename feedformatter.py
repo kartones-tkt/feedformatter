@@ -299,14 +299,6 @@ def _add_subelem(root_element, name, value):
         if name=="link":
             ET.SubElement(root_element, name, value)
 
-        elif name == 'content':
-            # A wee hack too, the content node must be 
-            # converted to a CDATA block. This is a sort of cheat, see:
-            # http://stackoverflow.com/questions/174890/how-to-output-cdata-using-elementtree
-            e = ET.Element(name, type= value['type'])
-            e.append(CDATA(value['content']))
-            root_element.append(e)
-
         else:
             subElem = ET.SubElement(root_element, name)
             for key in value:
@@ -517,21 +509,28 @@ class InvalidFeedException(Exception):
 
     pass
 
-def CDATA(text=None):
-    element = ET.Element(CDATA)
-    element.text = text
-    return element
 
 class ElementTreeCDATA(ET.ElementTree):
     """
     Subclass of ElementTree which handles CDATA blocks reasonably
     """
+
     def _write(self, file, node, encoding, namespaces):
-        if node.tag is CDATA:
+        """This method is for ElementTree <= 1.2.6"""
+
+        if node.tag == '![CDATA[':
             text = node.text.encode(encoding)
             file.write("\n<![CDATA[%s]]>\n" % text)
         else:
             ET.ElementTree._write(self, file, node, encoding, namespaces)
+
+    def _serialize_xml(write, elem, qnames, namespaces):
+        """This method is for ElementTree >= 1.3.0"""
+
+        if elem.tag == '![CDATA[':
+            write("\n<![CDATA[%s]]>\n" % elem.text)
+        else:
+            ET._serialize_xml(write, elem, qnames, namespaces)
 
 
 ### FACTORY FUNCTIONS ------------------------------
@@ -552,7 +551,7 @@ def main():
     item = {}
     item["title"] = "Python"
     item["link"] = "http://www.python.org"
-    item["description"] = "Python programming language"
+    item["content"] = "Python programming language <![CDATA[cdata test]]>"
     item["date"] = localtime()
     feed.items.append(item)
     print("---- RSS 1.0 ----")
